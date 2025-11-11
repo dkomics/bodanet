@@ -5,6 +5,7 @@
 **Goal:** bootstrap a modular Django backend for boda-boda operations (fare lookup, stand queueing, trusted riders) using Django + DRF.
 
 ### What I did
+
 - Created Django project `bodanet/`.
 - Created apps: `core`, `fare`, `queueing`, `trusted`.
 - Configured `rest_framework` in `INSTALLED_APPS`.
@@ -23,6 +24,7 @@
 - Created basic `trusted.RiderProfile` model (one-to-one to user) with `is_trusted` flag to support trusted-only queries.
 - Verified that joining the queue via browsable API works:
   - Response example:
+
     ```json
     {
       "id": 4,
@@ -34,6 +36,7 @@
     ```
 
 ### Notes / Decisions
+
 - We chose to modularize early: `core`, `fare`, `queueing`, `trusted` as separate apps.
 - We set `AUTH_USER_MODEL = "core.User"` on day 1 to avoid painful refactors later.
 - For now, browser tests rely on Django session auth (login via `/admin/`), but plan to add JWT for mobile clients.
@@ -41,6 +44,7 @@
 - Queue join now uses `request.user` → safer than sending arbitrary `rider_id`.
 
 ### To do (next)
+
 - Add endpoint to list available stands: `GET /api/stands/`
 - Register `RiderProfile` in admin and test `/api/queue/next/` with `trusted_only=true`
 - Add JWT auth (djangorestframework-simplejwt) for Flutter/mobile use
