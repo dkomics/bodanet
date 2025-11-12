@@ -20,15 +20,21 @@ class StandSession(models.Model):
 from django.conf import settings
 
 class Trip(models.Model):
-    """
-    A record of a rider being assigned from a stand.
-    """
     rider = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    stand = models.ForeignKey('core.Stand', on_delete=models.SET_NULL, null=True, blank=True)
+    stand = models.ForeignKey(Stand, on_delete=models.SET_NULL, null=True, blank=True)
+   
+    destination_stand = models.ForeignKey(
+        Stand,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='destination_trips'
+    )
+    destination_text = models.CharField(max_length=200, blank=True, null=True)
+
     requested_at = models.DateTimeField(default=timezone.now)
     trusted_only = models.BooleanField(default=False)
-    # you can add destination later if you start collecting it
-    # destination = models.CharField(max_length=120, blank=True, null=True)
 
     def __str__(self):
-        return f"Trip: {self.rider} from {self.stand} at {self.requested_at}"
+        dest = self.destination_stand.code if self.destination_stand else (self.destination_text or "unknown")
+        return f"Trip: {self.rider} from {self.stand} to {dest} at {self.requested_at}"

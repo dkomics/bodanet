@@ -64,12 +64,10 @@ def join_queue(request):
 
 @api_view(['POST'])
 def next_rider(request):
-    """
-    Passenger/dispatcher: give me the next rider from this stand.
-    Optional: trusted_only=true
-    """
     stand_code = request.data.get('stand_code')
     trusted_only = request.data.get('trusted_only', False)
+    destination_code = request.data.get('destination_code')
+    destination_text = request.data.get('destination_text')
 
     if not stand_code:
         return Response({"detail": "stand_code is required"}, status=400)
@@ -79,7 +77,6 @@ def next_rider(request):
     except Stand.DoesNotExist:
         return Response({"detail": "stand not found"}, status=404)
 
-    # base queryset: active sessions at that stand
     qs = StandSession.objects.filter(stand=stand, active=True).order_by('joined_at')
 
     if trusted_only:
@@ -89,15 +86,25 @@ def next_rider(request):
     if not session:
         return Response({"detail": "no available rider"}, status=404)
 
-    # deactivate them (they got the job)
+    # deactivate session
     session.active = False
     session.save()
+
+    # try to resolve destination stand (optional)
+    destination_stand = None
+    if destination_code:
+        try:
+            destination_stand = Stand.objects.get(code=destination_code)
+        except Stand.DoesNotExist:
+            destination_stand = None  # we'll just use text if provided
 
     # create trip record
     Trip.objects.create(
         rider=session.rider,
         stand=stand,
-        trusted_only=bool(trusted_only)
+        destination_stand=destination_stand,
+        destination_text=destination_text,
+        trusted_only=bool(trusted_only),
     )
 
     data = {
@@ -105,9 +112,13 @@ def next_rider(request):
         "rider_username": session.rider.username,
         "rider_phone": session.rider.phone,
         "stand": stand.code,
-        "trusted": getattr(getattr(session.rider, 'riderprofile', None), 'is_trusted', False)
+        "trusted": getattr(getattr(session.rider, 'riderprofile', None), 'is_trusted', False),
+        # echo back destination so client knows what got recorded
+        "destination_stand": destination_stand.code if destination_stand else None,
+        "destination_text": destination_text,
     }
     return Response(data, status=200)
+
 
 
 @api_view(['POST'])
