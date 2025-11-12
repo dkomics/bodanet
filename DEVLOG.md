@@ -53,3 +53,10 @@
 - Write minimal README about project purpose
 
 ---
+
+## 2025-11-12
+
+- Added /api/stands/ endpoint to list stands for clients.
+- Enabled JWT authentication (djangorestframework-simplejwt).
+- Tested protected endpoint /api/queue/join/ via curl + Bearer token.
+- Verified trusted-only dispatch via /api/queue/next/ with {"trusted_only": true}.
