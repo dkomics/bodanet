@@ -13,10 +13,6 @@ from .serializers import StandSessionSerializer
 
 @api_view(['POST'])
 def join_queue(request):
-    """
-    Rider says: I'm at this stand and available.
-    Now we use request.user instead of passing rider_id in the body.
-    """
     user = request.user
     if not user.is_authenticated:
         return Response({"detail": "authentication required"}, status=status.HTTP_401_UNAUTHORIZED)
@@ -33,9 +29,24 @@ def join_queue(request):
     except Stand.DoesNotExist:
         return Response({"detail": "stand not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    # deactivate any existing active session for this rider
-    StandSession.objects.filter(rider=user, active=True).update(active=False)
+    # 1) check if rider already has an active session (any stand, or you can filter by this stand)
+    existing = StandSession.objects.filter(rider=user, active=True).first()
+    if existing:
+        # optionally update stand if rider moved stands
+        if existing.stand != stand:
+            existing.stand = stand
+            existing.joined_at = timezone.now()
+            existing.save()
+        # return existing session
+        return Response({
+            "id": existing.id,
+            "rider_username": user.username,
+            "stand_code": existing.stand.code,
+            "joined_at": existing.joined_at,
+            "active": existing.active
+        }, status=status.HTTP_200_OK)
 
+    # 2) otherwise create a new session
     session = StandSession.objects.create(
         rider=user,
         stand=stand,
@@ -50,7 +61,6 @@ def join_queue(request):
         "joined_at": session.joined_at,
         "active": session.active
     }, status=status.HTTP_201_CREATED)
-
 
 @api_view(['POST'])
 def next_rider(request):
