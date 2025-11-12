@@ -1,7 +1,6 @@
 from django.contrib import admin
 from .models import RiderProfile
 
-admin.site.register(RiderProfile)
 
 @admin.register(RiderProfile)
 class RiderProfileAdmin(admin.ModelAdmin):
