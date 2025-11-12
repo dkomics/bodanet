@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from core.models import Stand, User
 from trusted.models import RiderProfile   # we'll make sure this exists
-from .models import StandSession
+from .models import StandSession, Trip
 from .serializers import StandSessionSerializer
 
 @api_view(['POST'])
@@ -83,18 +83,23 @@ def next_rider(request):
     qs = StandSession.objects.filter(stand=stand, active=True).order_by('joined_at')
 
     if trusted_only:
-        # filter to sessions whose rider is trusted
         qs = qs.filter(rider__riderprofile__is_trusted=True)
 
     session = qs.first()
     if not session:
         return Response({"detail": "no available rider"}, status=404)
 
-    # for v1: immediately deactivate them (they got the job)
+    # deactivate them (they got the job)
     session.active = False
     session.save()
 
-    # return rider info
+    # create trip record
+    Trip.objects.create(
+        rider=session.rider,
+        stand=stand,
+        trusted_only=bool(trusted_only)
+    )
+
     data = {
         "rider_id": session.rider.id,
         "rider_username": session.rider.username,
