@@ -9,7 +9,7 @@ from django.utils import timezone
 from core.models import Stand, User
 from trusted.models import RiderProfile   # we'll make sure this exists
 from .models import StandSession, Trip
-from .serializers import StandSessionSerializer
+from .serializers import TripSerializer
 
 @api_view(['POST'])
 def join_queue(request):
@@ -139,3 +139,32 @@ def complete_trip(request):
     session.active = False
     session.save()
     return Response({"detail": "session closed"}, status=200)
+
+@api_view(['GET'])
+def list_trips(request):
+    """
+    List recent trips. Supports optional filters:
+    - ?stand=USA-RIVER
+    - ?rider=dkomics
+    - ?trusted_only=true
+    """
+    qs = Trip.objects.all().order_by('-requested_at')
+
+    stand_code = request.query_params.get('stand')
+    if stand_code:
+        qs = qs.filter(stand__code=stand_code)
+
+    rider_username = request.query_params.get('rider')
+    if rider_username:
+        qs = qs.filter(rider__username=rider_username)
+
+    trusted_only = request.query_params.get('trusted_only')
+    if trusted_only is not None:
+        # treat anything == 'true' (case-insensitive) as True
+        qs = qs.filter(trusted_only=trusted_only.lower() == 'true')
+
+    # you can paginate later; for now show latest 50
+    qs = qs[:50]
+
+    serializer = TripSerializer(qs, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
