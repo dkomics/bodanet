@@ -4,6 +4,7 @@ from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import IsAdminUser
 from django.utils import timezone
 
 from core.models import Stand, User
@@ -141,13 +142,8 @@ def complete_trip(request):
     return Response({"detail": "session closed"}, status=200)
 
 @api_view(['GET'])
+@permission_classes([IsAdminUser])
 def list_trips(request):
-    """
-    List recent trips. Supports optional filters:
-    - ?stand=USA-RIVER
-    - ?rider=dkomics
-    - ?trusted_only=true
-    """
     qs = Trip.objects.all().order_by('-requested_at')
 
     stand_code = request.query_params.get('stand')
@@ -160,11 +156,12 @@ def list_trips(request):
 
     trusted_only = request.query_params.get('trusted_only')
     if trusted_only is not None:
-        # treat anything == 'true' (case-insensitive) as True
         qs = qs.filter(trusted_only=trusted_only.lower() == 'true')
 
-    # you can paginate later; for now show latest 50
-    qs = qs[:50]
+    page_size = int(request.query_params.get('page_size', 50))
+    page = int(request.query_params.get('page', 1))
+    start = (page - 1) * page_size
+    end = start + page_size
 
-    serializer = TripSerializer(qs, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    serializer = TripSerializer(qs[start:end], many=True)
+    return Response(serializer.data, status=200)

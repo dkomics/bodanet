@@ -60,3 +60,9 @@
 - Enabled JWT authentication (djangorestframework-simplejwt).
 - Tested protected endpoint /api/queue/join/ via curl + Bearer token.
 - Verified trusted-only dispatch via /api/queue/next/ with {"trusted_only": true}.
+
+## 2025-11-12 (cont.)
+
+- Added trip listing endpoint `/api/trips/`.
+- Protected trips endpoint with admin-only permission.
+- Added basic pagination via `page` and `page_size` query params.
